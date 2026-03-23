@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TruSea Tracker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f2f2f7;
+  color: #1c1c1e;
+  font-size: 15px;
+  padding-bottom: 30px;
+}
+
+/* ── Header ── */
+.header {
+  background: #fff;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid #e5e5ea;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.brand { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+.brand span { color: #007aff; }
+.sync-btn {
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sync-btn:active { opacity: 0.75; }
+.sync-info { font-size: 12px; color: #8e8e93; }
+
+/* ── Search ── */
+.search-wrap {
+  padding: 10px 16px 0;
+}
+.search-input {
+  width: 100%;
+  padding: 9px 14px 9px 36px;
+  background: #e5e5ea;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 10px center;
+}
+
+/* ── Filter tabs ── */
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: #e5e5ea;
+  color: #3c3c43;
+}
+.tab.active { background: #007aff; color: #fff; }
+
+/* ── Summary cards ── */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+.sum-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.sum-num { font-size: 22px; font-weight: 700; }
+.sum-label { font-size: 10px; color: #8e8e93; margin-top: 2px; font-weight: 500; }
+.c-blue  { color: #007aff; }
+.c-green { color: #34c759; }
+.c-orange{ color: #ff9500; }
+.c-red   { color: #ff3b30; }
+
+/* ── Section heading ── */
+.section-head {
+  padding: 16px 16px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8e8e93;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.count-badge {
+  display: inline-block;
+  background: #e5e5ea;
+  color: #8e8e93;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 12px;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+/* ── Order cards ── */
+.orders-list { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.order-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+.order-card-header {
+  padding: 12px 14px 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #f2f2f7;
+}
+.order-name { font-weight: 600; font-size: 15px; }
+.order-contact { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+.order-id { font-size: 11px; color: #c7c7cc; font-weight: 500; margin-top: 2px; }
+
+.order-card-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+.order-items {
+  font-size: 13px;
+  color: #3c3c43;
+  background: #f9f9fb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+
+.status-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.status-item { display: flex; flex-direction: column; gap: 2px; }
+.status-label { font-size: 10px; color: #8e8e93; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* ── Pills ── */
+.pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.pill-confirmed   { background: #d1f5e0; color: #1a7a3f; }
+.pill-pending     { background: #fff0d4; color: #8a5a00; }
+.pill-done        { background: #d1f5e0; color: #1a7a3f; }
+.pill-inprogress  { background: #fff0d4; color: #8a5a00; }
+.pill-notstarted  { background: #f2f2f7; color: #8e8e93; }
+.pill-packed      { background: #ddf0ff; color: #005db8; }
+.pill-delivered   { background: #d1f5e0; color: #1a7a3f; }
+.pill-outdelivery { background: #ede8ff; color: #5e35b1; }
+.pill-paid        { background: #d1f5e0; color: #1a7a3f; }
+.pill-cod         { background: #ffe5e5; color: #b22222; }
+
+/* ── Delivery address ── */
+.order-address {
+  font-size: 12px;
+  color: #636366;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+.order-address::before { content: '📍'; font-size: 11px; flex-shrink: 0; }
+
+/* ── Delivery date ── */
+.order-date {
+  font-size: 12px;
+  color: #636366;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.order-date::before { content: '📅'; font-size: 11px; }
+
+/* ── Empty ── */
+.empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #8e8e93;
+}
+.empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+/* ── Status banner ── */
+.banner {
+  margin: 10px 16px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.banner-ok   { background: #d1f5e0; color: #1a7a3f; }
+.banner-warn { background: #fff0d4; color: #8a5a00; }
+
+/* ── Loading ── */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #8e8e93;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="brand">🐟 Tru<span>Sea</span></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="bellBtn" style="background:none;border:1px solid #e5e5ea;border-radius:20px;padding:6px 12px;font-size:16px;cursor:pointer">🔔</button>
+      <button class="sync-btn" onclick="refresh()">⟳ Sync</button>
+    </div>
+  </div>
+  <div class="sync-info" id="syncInfo">Connecting to sheet…</div>
+</div>
+
+<!-- Connection Banner -->
+<div id="banner"></div>
+
+<!-- Search -->
+<div class="search-wrap">
+  <input class="search-input" type="search" id="searchQ" placeholder="Search customer, order…" oninput="render()">
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-tabs" id="filterTabs">
+  <button class="tab active" onclick="setFilter('all', this)">All</button>
+  <button class="tab" onclick="setFilter('pending_confirm', this)">⏳ Unconfirmed</button>
+  <button class="tab" onclick="setFilter('in_progress', this)">🔄 In Progress</button>
+  <button class="tab" onclick="setFilter('out_delivery', this)">🚚 Out for Delivery</button>
+  <button class="tab" onclick="setFilter('delivered', this)">✅ Delivered</button>
+  <button class="tab" onclick="setFilter('payment_pending', this)">💰 Pay Pending</button>
+</div>
+
+<!-- Summary -->
+<div class="summary" id="summary"></div>
+
+<!-- Orders -->
+<div class="section-head">Orders <span class="count-badge" id="orderCount">0</span></div>
+<div class="orders-list" id="ordersList"><div class="loading">Loading orders…</div></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIG — Edit these to match your sheet
+// ══════════════════════════════════════════════
+const SHEET_ID = '1vWUkaUApd1gkCs-XpSZrmMQ-GIS3RySaqMQ62YAYQqk';
+const GID      = '1830937720';
+
+const COL = {
+  name:       'Name',
+  contact:    'Contact Number - helps us to reach you',
+  address:    'Delivery Address',
+  delivDate:  'Select Delivery Date',
+  orderedDate:'Ordered Date',
+  orderedTime:'Ordered Time',
+  orderValue: 'Order value',
+  order:      'Order Summary',
+  confirm:    'Order Confirmation',
+  processing: 'Processing',
+  dispatch:   'Dispatch',
+  delivery:   'Delivery Status',
+  payMethod:  'Payment Method',
+  payment:    'Payment Status',
+};
+
+const STATUS = {
+  confirmed:   'Confirmed',
+  pending:     'Pending',
+  done:        'Done',
+  inProgress:  'In Progress',
+  notStarted:  'Not Started',
+  dispatched:  'Dispatched',
+  outDelivery: 'Out for Delivery',
+  delivered:   'Delivered',
+  paid:        'Paid',
+  cod:         'COD',
+  online:      'Online',
+};
+// ══════════════════════════════════════════════
+
+let orders = [];
+let activeFilter = 'all';
+
+// ── Fetch ────────────────────────────────────
+function fetchSheet() {
+  return new Promise((resolve, reject) => {
+    document.querySelectorAll('script[id^="gs_"]').forEach(s => s.remove());
+    Object.keys(window).filter(k => k.startsWith('__gsCB_')).forEach(k => delete window[k]);
+
+    const cb = '__gsCB_' + Date.now();
+    const timer = setTimeout(() => { delete window[cb]; reject(new Error('Timeout')); }, 10000);
+
+    window[cb] = function(data) {
+      clearTimeout(timer);
+      delete window[cb];
+      try {
+        if (!data.table || !data.table.rows || !data.table.rows.length)
+          return reject(new Error('No rows'));
+
+        const colLabels = (data.table.cols || []).map(c => (c.label || '').trim());
+
+        const find = (name) => {
+          if (!name) return -1;
+          let i = colLabels.findIndex(c => c === name);
+          if (i >= 0) return i;
+          i = colLabels.findIndex(c => c.toLowerCase() === name.toLowerCase());
+          if (i >= 0) return i;
+          return colLabels.findIndex(c => c.toLowerCase().includes(name.toLowerCase()));
+        };
+
+        const iN   = find(COL.name),
+              iC   = find(COL.contact),
+              iA   = find(COL.address),
+              iDD  = find(COL.delivDate),
+              iOD  = find(COL.orderedDate),
+              iOT  = find(COL.orderedTime),
+              iOV  = find(COL.orderValue),
+              iO   = find(COL.order),
+              iCf  = find(COL.confirm),
+              iP   = find(COL.processing),
+              iDsp = find(COL.dispatch),
+              iDl  = find(COL.delivery),
+              iPM  = find(COL.payMethod),
+              iPy  = find(COL.payment);
+
+        const dateStr = (r, idx) => {
+          if (idx < 0 || !r.c[idx] || r.c[idx].v == null) return '';
+          const raw = r.c[idx].v;
+          if (typeof raw === 'string' && raw.startsWith('Date(')) {
+            const p = raw.replace('Date(','').replace(')','').split(',');
+            return `${p[0]}-${String(+p[1]+1).padStart(2,'0')}-${String(+p[2]).padStart(2,'0')}`;
+          }
+          return r.c[idx].f || String(raw).trim();
+        };
+
+        const v = (r, idx) => (idx >= 0 && r.c[idx] && r.c[idx].v != null) ? String(r.c[idx].v).trim() : '';
+
+        const rows = data.table.rows.map((r, i) => ({
+          id:          '#' + String(i+1).padStart(3,'0'),
+          name:        v(r, iN),
+          contact:     v(r, iC),
+          address:     v(r, iA),
+          delivDate:   dateStr(r, iDD),
+          orderedDate: dateStr(r, iOD),
+          orderedTime: v(r, iOT),
+          orderValue:  v(r, iOV),
+          order:       v(r, iO),
+          confirm:     v(r, iCf)  || STATUS.pending,
+          processing:  v(r, iP)   || STATUS.notStarted,
+          dispatch:    v(r, iDsp) || STATUS.pending,
+          delivery:    v(r, iDl)  || STATUS.pending,
+          payMethod:   v(r, iPM)  || '—',
+          payment:     v(r, iPy)  || STATUS.pending,
+        })).filter(o => o.name && o.name.length > 1);
+
+        resolve(rows);
+      } catch(e) { reject(e); }
+    };
+
+    const s = document.createElement('script');
+    s.id  = 'gs_' + Date.now();
+    s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&gid=${GID}&v=${Date.now()}&r=${Math.random()}`;
+    s.onerror = () => { clearTimeout(timer); reject(new Error('Load failed')); };
+    document.head.appendChild(s);
+  });
+}
+
+// ── Alert State ───────────────────────────────
+let prevSnapshot = {}; // id → JSON of statuses
+let isFirstLoad  = true;
+
+function makeSnapshot(list) {
+  const snap = {};
+  list.forEach(o => {
+    snap[o.id] = [o.confirm, o.processing, o.dispatch, o.delivery, o.payment].join('|');
+  });
+  return snap;
+}
+
+// ── Sound Alert ───────────────────────────────
+function playBeep(type = 'new') {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (type === 'new') {
+      // Two-tone ascending beep for new order
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      osc.frequency.setValueAtTime(780, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    } else {
+      // Single soft beep for status change
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.25);
+    }
+  } catch(e) {}
+}
+
+// ── Browser Notification ──────────────────────
+function sendNotification(title, body, type = 'new') {
+  playBeep(type);
+  // Show in-app toast always
+  showToast(title, body, type);
+  // Browser notification if permitted
+  if (Notification.permission === 'granted') {
+    try {
+      new Notification(title, {
+        body,
+        icon: 'https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/set_meal/default/48px.svg',
+        badge: '',
+        tag: type + Date.now(),
+        vibrate: type === 'new' ? [200, 100, 200] : [100],
+      });
+    } catch(e) {}
+  }
+}
+
+// ── In-app Toast ──────────────────────────────
+function showToast(title, body, type = 'new') {
+  let toast = document.getElementById('alertToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'alertToast';
+    toast.style.cssText = `
+      position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);
+      background:#1c1c1e;color:#fff;border-radius:14px;padding:12px 18px;
+      font-size:13px;font-family:-apple-system,sans-serif;z-index:999;
+      box-shadow:0 8px 32px rgba(0,0,0,0.35);max-width:320px;width:90%;
+      opacity:0;transition:all 0.3s ease;pointer-events:none;
+    `;
+    document.body.appendChild(toast);
+  }
+  const color = type === 'new' ? '#30d158' : '#ffd60a';
+  toast.innerHTML = `
+    <div style="font-weight:700;font-size:14px;color:${color};margin-bottom:3px">${title}</div>
+    <div style="color:#ebebf5;opacity:0.85">${body}</div>
+  `;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-20px)';
+  }, 4000);
+}
+
+// ── Request Notification Permission ──────────
+function requestPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// ── Check for changes ─────────────────────────
+function checkAlerts(newOrders) {
+  if (isFirstLoad) {
+    prevSnapshot = makeSnapshot(newOrders);
+    isFirstLoad  = false;
+    return;
+  }
+
+  const newSnap = makeSnapshot(newOrders);
+  const newOrders2 = [];
+  const changedOrders = [];
+
+  newOrders.forEach(o => {
+    if (!prevSnapshot[o.id]) {
+      // Brand new order
+      newOrders2.push(o);
+    } else if (prevSnapshot[o.id] !== newSnap[o.id]) {
+      // Status changed
+      changedOrders.push(o);
+    }
+  });
+
+  if (newOrders2.length > 0) {
+    const names = newOrders2.map(o => o.name).join(', ');
+    sendNotification(
+      `🐟 ${newOrders2.length} New Order${newOrders2.length > 1 ? 's' : ''}!`,
+      names,
+      'new'
+    );
+  }
+
+  changedOrders.forEach(o => {
+    sendNotification(
+      `🔄 Order Updated`,
+      `${o.name} — ${o.processing} · ${o.delivery}`,
+      'change'
+    );
+  });
+
+  prevSnapshot = newSnap;
+}
+
+// ── Refresh ───────────────────────────────────
+async function refresh() {
+  document.getElementById('syncInfo').textContent = 'Syncing…';
+  try {
+    const live = await fetchSheet();
+    if (live.length) {
+      checkAlerts(live);
+      orders = live;
+      document.getElementById('banner').innerHTML =
+        `<div class="banner banner-ok">✓ Connected · ${live.length} orders · ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      document.getElementById('syncInfo').textContent =
+        `Live · synced at ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+    } else throw new Error('empty');
+  } catch(e) {
+    document.getElementById('banner').innerHTML =
+      `<div class="banner banner-warn">⚠ Using demo data — make sheet public to connect</div>`;
+    document.getElementById('syncInfo').textContent = 'Demo mode';
+    if (!orders.length) orders = DEMO;
+  }
+  render();
+}
+
+// ── Filter ────────────────────────────────────
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function applyFilter(list) {
+  switch(activeFilter) {
+    case 'pending_confirm':  return list.filter(o => o.confirm !== STATUS.confirmed);
+    case 'in_progress':      return list.filter(o => o.processing === STATUS.inProgress);
+    case 'out_delivery':     return list.filter(o => o.delivery === STATUS.outDelivery);
+    case 'delivered':        return list.filter(o => o.delivery === STATUS.delivered);
+    case 'payment_pending':  return list.filter(o => o.payment === STATUS.pending);
+    default:                 return list;
+  }
+}
+
+// ── Render ────────────────────────────────────
+function render() {
+  const q = document.getElementById('searchQ').value.toLowerCase();
+
+  let list = orders;
+  if (q) list = list.filter(o =>
+    [o.name, o.contact, o.order, o.address].join(' ').toLowerCase().includes(q)
+  );
+  list = applyFilter(list);
+
+  // Summary (always from full orders)
+  const t = orders.length || 1;
+  document.getElementById('summary').innerHTML = [
+    { num: orders.length,                                             label: 'Total',     cls: 'c-blue'   },
+    { num: orders.filter(o=>o.confirm===STATUS.confirmed).length,    label: 'Confirmed', cls: 'c-green'  },
+    { num: orders.filter(o=>o.delivery===STATUS.outDelivery).length, label: 'Delivery',  cls: 'c-orange' },
+    { num: orders.filter(o=>o.payment===STATUS.pending).length,      label: 'Pay Due',   cls: 'c-red'    },
+  ].map(s => `
+    <div class="sum-card">
+      <div class="sum-num ${s.cls}">${s.num}</div>
+      <div class="sum-label">${s.label}</div>
+    </div>`).join('');
+
+  document.getElementById('orderCount').textContent = list.length;
+
+  if (!list.length) {
+    document.getElementById('ordersList').innerHTML =
+      `<div class="empty"><div class="empty-icon">📭</div><div>No orders found</div></div>`;
+    return;
+  }
+
+  document.getElementById('ordersList').innerHTML = list.map(o => `
+    <div class="order-card">
+
+      <div class="order-card-header">
+        <div>
+          <div class="order-name">${o.name}</div>
+          <div class="order-contact">${o.contact || '—'}</div>
+          <div class="order-id">${o.id} ${o.orderedDate ? '· ' + o.orderedDate : ''} ${o.orderedTime ? o.orderedTime : ''}</div>
+        </div>
+        <span class="${pill(o.confirm)}">${o.confirm}</span>
+      </div>
+
+      <div class="order-card-body">
+
+        ${o.order ? `<div class="order-items">${o.order.split('\n').filter(l=>l.trim()).join(' | ')}</div>` : ''}
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${o.address   ? `<div class="order-address">${o.address}</div>` : ''}
+          ${o.delivDate ? `<div class="order-date">Deliver by ${o.delivDate}</div>` : ''}
+          ${o.orderValue ? `<div class="order-date">💰 ₹${o.orderValue}</div>` : ''}
+        </div>
+
+        <div class="status-row">
+          <div class="status-item">
+            <div class="status-label">Processing</div>
+            <span class="${pill(o.processing)}">${o.processing}</span>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Dispatch</div>
+            <span class="${pill(o.dispatch)}">${o.dispatch}</span>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Delivery</div>
+            <span class="${pill(o.delivery)}">${o.delivery}</span>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Payment</div>
+            <span class="${pill(o.payment)}">${o.payment}${o.payMethod && o.payMethod !== '—' ? ' · ' + o.payMethod : ''}</span>
+          </div>
+        </div>
+
+      </div>
+    </div>`).join('');
+}
+
+// ── Pill helper ───────────────────────────────
+function pill(v) {
+  const m = {
+    [STATUS.confirmed]:   'pill pill-confirmed',
+    [STATUS.pending]:     'pill pill-pending',
+    [STATUS.done]:        'pill pill-done',
+    [STATUS.inProgress]:  'pill pill-inprogress',
+    [STATUS.notStarted]:  'pill pill-notstarted',
+    [STATUS.dispatched]:  'pill pill-packed',
+    [STATUS.delivered]:   'pill pill-delivered',
+    [STATUS.outDelivery]: 'pill pill-outdelivery',
+    [STATUS.paid]:        'pill pill-paid',
+    [STATUS.cod]:         'pill pill-cod',
+    [STATUS.online]:      'pill pill-packed',
+  };
+  return m[v] || 'pill pill-pending';
+}
+
+// ── Demo data ─────────────────────────────────
+const DEMO = [
+  {id:'#001',name:'Arun Kumar',    contact:'+91 98401 12345',address:'42 Anna Nagar, Chennai',   delivDate:'2025-03-23',orderedDate:'2025-03-20',orderedTime:'10:30 AM',orderValue:'850',order:'2x Red Snapper, 1x Tuna Steak',  confirm:'Confirmed',  processing:'Done',       dispatch:'Dispatched',delivery:'Out for Delivery',payMethod:'COD',  payment:'Pending'},
+  {id:'#002',name:'Divya Menon',   contact:'+91 94440 23456',address:'15 Besant Nagar, Chennai', delivDate:'2025-03-23',orderedDate:'2025-03-20',orderedTime:'11:15 AM',orderValue:'620',order:'3x King Fish, 500g Prawns',       confirm:'Confirmed',  processing:'In Progress',dispatch:'Pending',   delivery:'Pending',          payMethod:'Online',payment:'Paid'},
+  {id:'#003',name:'Meena Sundaram',contact:'+91 99400 45678',address:'88 Velachery Main Rd',     delivDate:'2025-03-24',orderedDate:'2025-03-21',orderedTime:'09:00 AM',orderValue:'430',order:'1kg Crab, 500g Squid',            confirm:'Pending',    processing:'Not Started',dispatch:'Pending',   delivery:'Pending',          payMethod:'COD',  payment:'Pending'},
+];
+
+// ── Auto refresh every 30s ────────────────────
+requestPermission();
+refresh();
+setInterval(refresh, 30000);
+
+// Re-request permission if user taps the bell
+document.getElementById('bellBtn').addEventListener('click', () => {
+  if (Notification.permission === 'granted') {
+    showToast('🔔 Alerts ON', 'You will be notified of new orders & changes', 'new');
+  } else {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') showToast('🔔 Alerts Enabled!', 'You will now get notifications', 'new');
+      else showToast('🔕 Alerts Blocked', 'Enable notifications in browser settings', 'change');
+    });
+  }
+});
+</script>
+</body>
+</html>
