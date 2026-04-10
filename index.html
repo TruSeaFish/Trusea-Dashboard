@@ -437,15 +437,6 @@ body {
       <p>Daily Orders</p>
     </div>
 
-    <!-- Center: Logo -->
-    <div class="logo-center">
-      <div class="logo-box" onclick="document.getElementById('logoUpload').click()>
-        <img id="logoImg" src="" alt="" style="display:none">
-        <span class="logo-placeholder" id="logoPlaceholder">🐠</span>
-      </div>
-            <input type="file" id="logoUpload" class="logo-upload" accept="image/*" onchange="uploadLogo(this)">
-    </div>
-
     <!-- Right: Actions -->
     <div class="header-actions">
       <button class="icon-btn" id="bellBtn">🔔</button>
@@ -860,7 +851,10 @@ function render() {
         ${o.address ? `
         <div class="location-row">
           <div class="address-text">📍 ${o.address}</div>
-          ${o.mapLink ? `<a class="map-btn" href="${o.mapLink}" target="_blank">🗺 Map</a>` : ''}
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            ${o.phone   ? `<a class="map-btn" href="tel:${o.phone.replace(/\s+/g,'')}" style="background:#06d6a0">📞 Call</a>` : ''}
+            ${o.mapLink ? `<a class="map-btn" href="${o.mapLink}" target="_blank">🗺 Map</a>` : ''}
+          </div>
         </div>` : ''}
 
         ${o.orderTotal ? `
