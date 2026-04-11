@@ -479,6 +479,16 @@ body {
       <p>Daily Orders</p>
     </div>
 
+    <!-- Center: Logo -->
+    <div class="logo-center">
+      <div class="logo-box" onclick="document.getElementById('logoUpload').click()" title="Tap to upload logo">
+        <img id="logoImg" src="" alt="" style="display:none">
+        <span class="logo-placeholder" id="logoPlaceholder">🐠</span>
+      </div>
+      <div class="logo-hint">tap to add logo</div>
+      <input type="file" id="logoUpload" class="logo-upload" accept="image/*" onchange="uploadLogo(this)">
+    </div>
+
     <!-- Right: Actions -->
     <div class="header-actions">
       <button class="icon-btn" id="bellBtn">🔔</button>
@@ -848,75 +858,73 @@ function render() {
     const cardCls = o.confirm === STATUS.confirmed ? 'confirmed' :
                     o.confirm === STATUS.pending    ? 'pending'   : 'unconfirmed';
 
-    // ── Parse products + prices ──────────────────────────
-    // Product: "Item A | Item B | Item C"
-    // Price:   "₹618 | ₹374 | ₹445"   (single qty price)
-    // Order Total already has correct final value (includes qty)
+    // ── Parse price column ────────────────────────────────
+    // Price column per product pipe-separated: "₹760+₹389 | ₹618 | ₹374"
+    // Each item can have "productPrice+addonPrice" with + sign
 
-    function buildProductLines(prodStr, priceStr) {
-      if (!prodStr) return '';
-      const prods  = prodStr.split('|').map(p => p.trim()).filter(Boolean);
-      const prices = priceStr
-        ? priceStr.split('|').map(p => {
-            // Handle "₹760+₹389" format — split on + and sum
-            const parts = p.split('+');
-            const sum = parts.reduce((acc, part) => {
-              const n = parseFloat(part.replace(/[^0-9.]/g, ''));
-              return acc + (isNaN(n) ? 0 : n);
-            }, 0);
-            return sum;
-          })
-        : [];
-
-      // Calculate per-item qty using order total
-      // total = sum of (price[i] * qty[i])
-      // Since we only have unit price, we derive qty per item:
-      // qty = round(subtotal / unitPrice) — but we don't have per-item subtotal
-      // So: show unit price, and if total differs from sum(prices), note qty
-
-      const unitSum = prices.reduce((a, b) => a + b, 0);
-      const total   = parseFloat(String(o.orderTotal).replace(/[^0-9.]/g, '')) || 0;
-      // Scale factor: if total != unitSum, customer ordered multiples
-      // We can't know exact qty per item — show what we have cleanly
-      const hasPrice = prices.length > 0;
-
-      return prods.map((name, i) => {
-        const unitPrice = prices[i] || 0;
-        // Try to detect qty: if total > unitSum and only 1 product, qty = total/unitPrice
-        let qty = 1;
-        if (prods.length === 1 && unitPrice > 0 && total > 0) {
-          qty = Math.round(total / unitPrice);
-        }
-        const subtotal = unitPrice * qty;
-
-        return `
-          <div class="product-item">
-            <div class="product-name">${name}</div>
-            ${hasPrice && unitPrice > 0 ? `
-            <div class="product-meta">
-              ${qty > 1 ? `<span class="product-qty">Qty × ${qty}</span>` : `<span class="product-qty">Qty × 1</span>`}
-              <span class="product-price">₹${unitPrice.toLocaleString('en-IN')} / unit</span>
-              ${qty > 1
-                ? `<span class="product-subtotal">Sub-total: ₹${subtotal.toLocaleString('en-IN')}</span>`
-                : `<span class="product-subtotal">₹${unitPrice.toLocaleString('en-IN')}</span>`
-              }
-            </div>` : ''}
-          </div>`;
-      }).join('');
+    // Parse a price string like "₹760+₹389" → { prodPrice: 760, addonPrice: 389 }
+    function parsePriceParts(rawPrice) {
+      const parts = (rawPrice || '').split('+').map(p => {
+        const n = parseFloat(p.replace(/[^0-9.]/g, ''));
+        return isNaN(n) ? 0 : n;
+      });
+      return { prodPrice: parts[0] || 0, addonPrice: parts.slice(1).reduce((a,b)=>a+b,0) };
     }
 
-    function buildPrebookLines(prebookStr) {
-      if (!prebookStr) return '';
-      // Pre-book: product + weight only, no price
-      return prebookStr.split('|').map(p => p.trim()).filter(Boolean).map(name => `
+    // All per-product price segments (pipe-separated)
+    const priceSegments = o.price
+      ? o.price.split('|').map(p => parsePriceParts(p.trim()))
+      : [];
+
+    // Products list
+    const products = o.product
+      ? o.product.split('|').map(p => p.trim()).filter(Boolean)
+      : [];
+
+    // Compute product-only total and addon-only total
+    let productTotal = 0;
+    let addonTotal   = 0;
+    priceSegments.forEach(seg => {
+      productTotal += seg.prodPrice;
+      addonTotal   += seg.addonPrice;
+    });
+
+    // If only 1 product and order total > productTotal, customer ordered qty > 1
+    const grandTotal = parseFloat(String(o.orderTotal).replace(/[^0-9.]/g,'')) || 0;
+
+    // Build product lines HTML
+    const prodLinesHtml = products.map((name, i) => {
+      const seg = priceSegments[i] || { prodPrice: 0, addonPrice: 0 };
+      const unitPrice = seg.prodPrice;
+
+      // Qty detection: only possible for single-product orders
+      let qty = 1;
+      if (products.length === 1 && unitPrice > 0 && grandTotal > 0) {
+        qty = Math.round((grandTotal - addonTotal) / unitPrice) || 1;
+      }
+      const lineTotal = unitPrice * qty;
+
+      return `
         <div class="product-item">
           <div class="product-name">${name}</div>
-        </div>`).join('');
-    }
+          ${unitPrice > 0 ? `
+          <div class="product-meta">
+            <span class="product-qty">Qty × ${qty}</span>
+            <span class="product-price">₹${unitPrice.toLocaleString('en-IN')} / unit</span>
+            <span class="product-subtotal">₹${lineTotal.toLocaleString('en-IN')}</span>
+          </div>` : ''}
+        </div>`;
+    }).join('');
 
-    const prodLines    = buildProductLines(o.product, o.price);
-    const addonLines   = buildProductLines(o.addons, ''); // addons — no price
-    const prebookLines = buildPrebookLines(o.prebook);
+    // Addon section — show raw text + addon total on right
+    const addonText = o.addons ? o.addons.trim() : '';
+
+    // Pre-book lines (no price)
+    const prebookLinesHtml = o.prebook
+      ? o.prebook.split('|').map(p => p.trim()).filter(Boolean).map(name =>
+          `<div class="product-item"><div class="product-name">${name}</div></div>`
+        ).join('')
+      : '';
 
     return `
     <div class="order-card ${cardCls}">
@@ -933,22 +941,25 @@ function render() {
 
       <div class="card-body">
 
-        ${prodLines ? `
+        ${prodLinesHtml ? `
         <div class="items-box">
           <div class="items-label">🐟 Products</div>
-          <div class="product-line">${prodLines}</div>
+          <div class="product-line">${prodLinesHtml}</div>
         </div>` : ''}
 
-        ${addonLines ? `
+        ${addonText ? `
         <div class="addon-box">
-          <div class="addon-label">➕ Add-ons</div>
-          <div class="product-line">${addonLines}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="addon-label">➕ Add-ons</div>
+            ${addonTotal > 0 ? `<span style="font-size:13px;font-weight:700;color:#92400e">₹${addonTotal.toLocaleString('en-IN')}</span>` : ''}
+          </div>
+          <div class="items-text" style="margin-top:4px">${addonText}</div>
         </div>` : ''}
 
-        ${prebookLines ? `
+        ${prebookLinesHtml ? `
         <div class="prebook-box">
           <div class="prebook-label">📅 Pre-Book</div>
-          <div class="product-line">${prebookLines}</div>
+          <div class="product-line">${prebookLinesHtml}</div>
         </div>` : ''}
 
         ${o.address ? `
@@ -963,7 +974,7 @@ function render() {
         ${o.orderTotal ? `
         <div class="total-row">
           <div class="total-lbl">Order Total</div>
-          <div class="total-val">₹${o.orderTotal}</div>
+          <div class="total-val">₹${grandTotal.toLocaleString('en-IN')}</div>
         </div>` : ''}
 
         <div class="status-grid">
