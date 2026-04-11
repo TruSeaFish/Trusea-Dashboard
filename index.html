@@ -387,7 +387,49 @@ body {
 .p-online      { background: #dbeafe; color: #1e40af; }
 .p-prebook     { background: #f0fdf4; color: #15803d; }
 
-/* ── EMPTY ── */
+/* ── PRODUCT LINE ITEMS ── */
+.product-line {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.product-item {
+  border-bottom: 1px solid #eef2f7;
+  padding-bottom: 8px;
+}
+.product-item:last-child { border-bottom: none; padding-bottom: 0; }
+.product-name {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.product-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.product-qty {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ocean);
+  background: #e8f4fd;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.product-price {
+  font-size: 12px;
+  color: var(--muted);
+}
+.product-subtotal {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-left: auto;
+}
 .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
 .empty-icon { font-size: 44px; margin-bottom: 10px; }
 
@@ -435,6 +477,16 @@ body {
     <div class="brand-left">
       <h1>🐟 TruSea Fish</h1>
       <p>Daily Orders</p>
+    </div>
+
+    <!-- Center: Logo -->
+    <div class="logo-center">
+      <div class="logo-box" onclick="document.getElementById('logoUpload').click()" title="Tap to upload logo">
+        <img id="logoImg" src="" alt="" style="display:none">
+        <span class="logo-placeholder" id="logoPlaceholder">🐠</span>
+      </div>
+      <div class="logo-hint">tap to add logo</div>
+      <input type="file" id="logoUpload" class="logo-upload" accept="image/*" onchange="uploadLogo(this)">
     </div>
 
     <!-- Right: Actions -->
@@ -591,6 +643,7 @@ function fetchSheet() {
           prod:  fi(COL.product),
           addon: fi(COL.addons),
           pre:   fi(COL.prebook),
+          price: fi(COL.price),
           total: fi(COL.orderTotal),
           conf:  fi(COL.confirm),
           proc:  fi(COL.processing),
@@ -624,6 +677,7 @@ function fetchSheet() {
           product:    v(r, idx.prod),
           addons:     v(r, idx.addon),
           prebook:    v(r, idx.pre),
+          price:      v(r, idx.price),
           orderTotal: f(r, idx.total) || v(r, idx.total),
           timestamp:  tsVal(r, idx.ts),
           confirm:    v(r, idx.conf)  || STATUS.pending,
@@ -804,16 +858,70 @@ function render() {
     const cardCls = o.confirm === STATUS.confirmed ? 'confirmed' :
                     o.confirm === STATUS.pending    ? 'pending'   : 'unconfirmed';
 
-    // Format products with pipe separator
-    const prodHtml = o.product
-      ? o.product.split('\n').filter(l=>l.trim()).join(' | ')
-      : '';
-    const addonHtml = o.addons
-      ? o.addons.split('\n').filter(l=>l.trim()).join(' | ')
-      : '';
-    const prebookHtml = o.prebook
-      ? o.prebook.split('\n').filter(l=>l.trim()).join(' | ')
-      : '';
+    // ── Parse products + prices ──────────────────────────
+    // Product: "Item A | Item B | Item C"
+    // Price:   "₹618 | ₹374 | ₹445"   (single qty price)
+    // Order Total already has correct final value (includes qty)
+
+    function buildProductLines(prodStr, priceStr) {
+      if (!prodStr) return '';
+      const prods  = prodStr.split('|').map(p => p.trim()).filter(Boolean);
+      const prices = priceStr
+        ? priceStr.split('|').map(p => {
+            const n = parseFloat(p.replace(/[^0-9.]/g, ''));
+            return isNaN(n) ? 0 : n;
+          })
+        : [];
+
+      // Calculate per-item qty using order total
+      // total = sum of (price[i] * qty[i])
+      // Since we only have unit price, we derive qty per item:
+      // qty = round(subtotal / unitPrice) — but we don't have per-item subtotal
+      // So: show unit price, and if total differs from sum(prices), note qty
+
+      const unitSum = prices.reduce((a, b) => a + b, 0);
+      const total   = parseFloat(String(o.orderTotal).replace(/[^0-9.]/g, '')) || 0;
+      // Scale factor: if total != unitSum, customer ordered multiples
+      // We can't know exact qty per item — show what we have cleanly
+      const hasPrice = prices.length > 0;
+
+      return prods.map((name, i) => {
+        const unitPrice = prices[i] || 0;
+        // Try to detect qty: if total > unitSum and only 1 product, qty = total/unitPrice
+        let qty = 1;
+        if (prods.length === 1 && unitPrice > 0 && total > 0) {
+          qty = Math.round(total / unitPrice);
+        }
+        const subtotal = unitPrice * qty;
+
+        return `
+          <div class="product-item">
+            <div class="product-name">${name}</div>
+            ${hasPrice && unitPrice > 0 ? `
+            <div class="product-meta">
+              ${qty > 1 ? `<span class="product-qty">Qty × ${qty}</span>` : `<span class="product-qty">Qty × 1</span>`}
+              <span class="product-price">₹${unitPrice.toLocaleString('en-IN')} / unit</span>
+              ${qty > 1
+                ? `<span class="product-subtotal">Sub-total: ₹${subtotal.toLocaleString('en-IN')}</span>`
+                : `<span class="product-subtotal">₹${unitPrice.toLocaleString('en-IN')}</span>`
+              }
+            </div>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    function buildPrebookLines(prebookStr) {
+      if (!prebookStr) return '';
+      // Pre-book: product + weight only, no price
+      return prebookStr.split('|').map(p => p.trim()).filter(Boolean).map(name => `
+        <div class="product-item">
+          <div class="product-name">${name}</div>
+        </div>`).join('');
+    }
+
+    const prodLines    = buildProductLines(o.product, o.price);
+    const addonLines   = buildProductLines(o.addons, ''); // addons — no price
+    const prebookLines = buildPrebookLines(o.prebook);
 
     return `
     <div class="order-card ${cardCls}">
@@ -830,22 +938,22 @@ function render() {
 
       <div class="card-body">
 
-        ${prodHtml ? `
+        ${prodLines ? `
         <div class="items-box">
           <div class="items-label">🐟 Products</div>
-          <div class="items-text">${prodHtml}</div>
+          <div class="product-line">${prodLines}</div>
         </div>` : ''}
 
-        ${addonHtml ? `
+        ${addonLines ? `
         <div class="addon-box">
           <div class="addon-label">➕ Add-ons</div>
-          <div class="items-text">${addonHtml}</div>
+          <div class="product-line">${addonLines}</div>
         </div>` : ''}
 
-        ${prebookHtml ? `
+        ${prebookLines ? `
         <div class="prebook-box">
           <div class="prebook-label">📅 Pre-Book</div>
-          <div class="items-text">${prebookHtml}</div>
+          <div class="product-line">${prebookLines}</div>
         </div>` : ''}
 
         ${o.address ? `
