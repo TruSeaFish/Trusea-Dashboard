@@ -479,15 +479,6 @@ body {
       <p>Daily Orders</p>
     </div>
 
-    <!-- Center: Logo -->
-    <div class="logo-center">
-      <div class="logo-box" onclick="document.getElementById('logoUpload').click()>
-        <img id="logoImg" src="" alt="" style="display:none">
-        <span class="logo-placeholder" id="logoPlaceholder">🐠</span>
-      </div>
-      <input type="file" id="logoUpload" class="logo-upload" accept="image/*" onchange="uploadLogo(this)">
-    </div>
-
     <!-- Right: Actions -->
     <div class="header-actions">
       <button class="icon-btn" id="bellBtn">🔔</button>
@@ -867,8 +858,13 @@ function render() {
       const prods  = prodStr.split('|').map(p => p.trim()).filter(Boolean);
       const prices = priceStr
         ? priceStr.split('|').map(p => {
-            const n = parseFloat(p.replace(/[^0-9.]/g, ''));
-            return isNaN(n) ? 0 : n;
+            // Handle "₹760+₹389" format — split on + and sum
+            const parts = p.split('+');
+            const sum = parts.reduce((acc, part) => {
+              const n = parseFloat(part.replace(/[^0-9.]/g, ''));
+              return acc + (isNaN(n) ? 0 : n);
+            }, 0);
+            return sum;
           })
         : [];
 
